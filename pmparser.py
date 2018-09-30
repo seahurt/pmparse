@@ -18,7 +18,11 @@ fmt = logging.Formatter(FORMAT)
 h = logging.FileHandler('run.log')
 h.setFormatter(fmt)
 
+sth = logging.StreamHandler()
+sth.setFormatter(fmt)
+
 logger.addHandler(h)
+logger.addHandler(sth)
 
 
 
