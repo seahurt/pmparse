@@ -79,6 +79,8 @@ class Pmparse(object):
         self.outf = outf
         self.dbfile = dbfile
 
+        self.total_count = 0
+
         # init db
         self.db_init()
 
@@ -136,6 +138,7 @@ class Pmparse(object):
     def to_db(self):
         # self.cursor.executemany("insert into pubmed values (?,?,?,?,?,?,?,?,?,?)", self.iter_result)
         for x in self.iter_result:
+            self.total_count += 1
             try:
                 self.cursor.execute("insert into pubmed values (?,?,?,?,?,?,?,?,?,?)", x)
             except Exception as e:
