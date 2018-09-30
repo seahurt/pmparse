@@ -5,6 +5,7 @@ import sqlite3
 import collections
 import glob
 import os
+import sys
 from multiprocessing import dummy, Pool, Manager
 
 
@@ -69,19 +70,18 @@ class Pmparse(object):
         'Nov': '11',
         'Dec': '12'
     }
-    def __init__(self, indir, dbfile=None):
-        self.xml_text = None
-        self.xml_dict = None
+    def __init__(self, indir, dbfile=None, process=10):
+        self.process = process
 
         self.infs = glob.glob(indir + '/*.xml.gz')
         self.dbfile = dbfile
 
-        self.total_count = Manager().list
+        self.total_count = Manager().list()
 
         # init db
         self.db_init()
 
-        p = Pool(20)
+        p = Pool(self.process)
         p.map_async(self.parse_to_db, self.infs)
         p.close()
         p.join()
@@ -190,4 +190,4 @@ class Pmparse(object):
     
 
 if __name__ == '__main__':
-    Pmparse(inf='/Users/seahurt/Public/PycharmProjects/pubmed/*.xml.gz', dbfile='test.db', outf='test.json')
+    Pmparse(sys.argv[1], dbfile=sys.argv[2])
