@@ -104,7 +104,7 @@ class Pmparse(object):
 
         p = Pool(self.process)
         logger.info('Start pool')
-        p.map_async(self.parse_to_db, self.infs)
+        p.map_async(self.parse_to_db, self.infs, callback=print, error_callback=print)
         p.close()
         p.join()
         
