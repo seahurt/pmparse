@@ -94,6 +94,7 @@ class Pmparse(object):
                 self.parse_to_db()
         # close db
         self.conn.close()
+        print(f'Total count {self.total_count}')
     
     def parse(self):
         self.read_file()
