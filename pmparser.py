@@ -7,6 +7,20 @@ import glob
 import os
 import sys
 from multiprocessing import dummy, Pool, Manager
+import logging
+
+logger = logging.getLogger('main')
+logger.setLevel(logging.INFO)  # 必须有
+
+FORMAT = '%(message)s'
+fmt = logging.Formatter(FORMAT)
+
+h = logging.FileHandler('run.log')
+h.setFormatter(fmt)
+
+logger.addHandler(h)
+
+
 
 
 class Article(object):
@@ -77,6 +91,8 @@ class Pmparse(object):
         self.dbfile = dbfile
 
         self.total_count = Manager().list()
+        print(indir)
+        logger.info(indir)
 
         # init db
         self.db_init()
@@ -88,13 +104,16 @@ class Pmparse(object):
         
         # close db
         self.conn.close()
-        print(f'Total count {len(self.total_count)}')  
+        logger.info(f'Total count {len(self.total_count)}')  
         
     def parse_to_db(self, f):
-        xml_text = self.read_file(f)
-        xml_dict = self.parse_to_dict(xml_text)
-        iter_result = self.extract_info_to_iter(xml_dict)
-        self.to_db(iter_result)
+        try:
+            xml_text = self.read_file(f)
+            xml_dict = self.parse_to_dict(xml_text)
+            iter_result = self.extract_info_to_iter(xml_dict)
+            self.to_db(iter_result)
+        except Exception as e:
+            logger.error(f'{f} error')
     
     def db_init(self):
         if os.path.exists(self.dbfile):
@@ -113,12 +132,12 @@ class Pmparse(object):
     def read_file(self, file):
         with gzip.open(file, 'rt') as f:
             xml_text = f.read()
-        print('Read file done!')
+        logger.info('Read file done!')
         return xml_text
     
     def parse_to_dict(self, xml_text):
         xml_dict = xmltodict.parse(self)
-        print('Parse to dict done!')
+        logger.info('Parse to dict done!')
         return xml_dict
     
     def to_db(self, iter_result):
@@ -128,8 +147,8 @@ class Pmparse(object):
             try:
                 self.cursor.execute("insert into pubmed values (?,?,?,?,?,?,?,?,?,?)", x)
             except Exception as e:
-                print(e)
-                print(x)
+                logger.info(e)
+                logger.info(x)
                 raise(e)      
         self.conn.commit()
     
@@ -142,12 +161,12 @@ class Pmparse(object):
     def extract_info(self, xml_dict):
         container = []
         article_set = xml_dict.get('PubmedArticleSet', {}).get('PubmedArticle', {})
-        print(f'Total {len(article_set)}')
+        logger.info(f'Total {len(article_set)}')
         count = 0
         for article in article_set:
             count += 1
             if count % 1000 == 0:
-                print(f'Processing {count}')
+                logger.info(f'Processing {count}')
             container.append(article)
         return container
         
@@ -177,7 +196,7 @@ class Pmparse(object):
             if len(author) > 0:
                 author = author[0].get('Initials')
         elif type(author) == dict or type(author) == collections.OrderedDict:
-            # print(author)
+            # logger.info(author)
             author = author.get('Initials')
 
         language = info.get('Article', {}).get('Language', '')
