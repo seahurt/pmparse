@@ -107,6 +107,8 @@ class Pmparse(object):
         p.map_async(self.parse_to_db, self.infs, callback=print, error_callback=print)
         p.close()
         p.join()
+        self.total_to_db()
+
         
         # close db
         self.conn.close()
@@ -118,7 +120,7 @@ class Pmparse(object):
             xml_text = self.read_file(f)
             xml_dict = self.parse_to_dict(xml_text)
             iter_result = self.extract_info_to_iter(xml_dict)
-            self.to_db(iter_result)
+            #self.to_db(iter_result)
         except Exception as e:
             logger.error(f'{f} error')
     
@@ -157,6 +159,15 @@ class Pmparse(object):
                 logger.info(e)
                 logger.info(x)
                 raise(e)      
+        self.conn.commit()
+    
+    def total_to_db(self):
+        for x in self.total_count:
+            try:
+                self.cursor.execute("insert into pubmed values (?,?,?,?,?,?,?,?,?,?)", x)
+            except Exception as e:
+                logger.info(e)
+                logger.info(x)    
         self.conn.commit()
     
     def extract_info_to_dict(self, xml_dict):
