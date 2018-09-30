@@ -5,6 +5,7 @@ import sqlite3
 import collections
 import glob
 import os
+from multiprocessing import dummy, Pool, Manager
 
 
 class Article(object):
@@ -68,46 +69,32 @@ class Pmparse(object):
         'Nov': '11',
         'Dec': '12'
     }
-    def __init__(self, inf, dbfile=None, outf=None):
-        self.obj_result = []
-        self.iter_result = []
-        self.dict_result = []
+    def __init__(self, indir, dbfile=None):
         self.xml_text = None
-        self.xmldict = None
+        self.xml_dict = None
 
-        self.infs = glob.glob(inf)
-        self.outf = outf
+        self.infs = glob.glob(indir + '/*.xml.gz')
         self.dbfile = dbfile
 
-        self.total_count = 0
+        self.total_count = Manager().list
 
         # init db
         self.db_init()
 
-        for x in self.infs:
-            self.inf = x
-            self.obj_result = []
-            # extract info to dict and make article object 
-            self.parse()
-            # save to dbfile
-            if self.dbfile is not None:
-                self.parse_to_db()
+        p = Pool(20)
+        p.map_async(self.parse_to_db, self.infs)
+        p.close()
+        p.join()
+        
         # close db
         self.conn.close()
-        print(f'Total count {self.total_count}')
-    
-    def parse(self):
-        self.read_file()
-        self.parse_to_dict()
-        self.extract_info()
+        print(f'Total count {len(self.total_count)}')  
         
-    def parse_to_db(self):
-        self.extract_info_to_iter()
-        self.to_db()
-    
-    def parse_to_json(self):
-        self.extract_info_to_dict()
-        self.to_json()
+    def parse_to_db(self, f):
+        xml_text = self.read_file(f)
+        xml_dict = self.parse_to_dict(xml_text)
+        iter_result = self.extract_info_to_iter(xml_dict)
+        self.to_db(iter_result)
     
     def db_init(self):
         if os.path.exists(self.dbfile):
@@ -123,23 +110,21 @@ class Pmparse(object):
         except sqlite3.OperationalError:
             pass
 
-    def read_file(self):
-        with gzip.open(self.inf, 'rt') as f:
-            self.xml_text = f.read()
+    def read_file(self, file):
+        with gzip.open(file, 'rt') as f:
+            xml_text = f.read()
         print('Read file done!')
+        return xml_text
     
-    def parse_to_dict(self):
-        self.xmldict = xmltodict.parse(self.xml_text)
+    def parse_to_dict(self, xml_text):
+        xml_dict = xmltodict.parse(self)
         print('Parse to dict done!')
+        return xml_dict
     
-    def to_json(self):
-        with open(self.outf, 'w') as f:
-            json.dump(self.dict_result, f, indent=4)
-    
-    def to_db(self):
+    def to_db(self, iter_result):
         # self.cursor.executemany("insert into pubmed values (?,?,?,?,?,?,?,?,?,?)", self.iter_result)
-        for x in self.iter_result:
-            self.total_count += 1
+        for x in iter_result:
+            self.total_count.append(0)
             try:
                 self.cursor.execute("insert into pubmed values (?,?,?,?,?,?,?,?,?,?)", x)
             except Exception as e:
@@ -148,21 +133,23 @@ class Pmparse(object):
                 raise(e)      
         self.conn.commit()
     
-    def extract_info_to_dict(self):
-        self.dict_result = [x.to_dict() for x in self.obj_result]
+    def extract_info_to_dict(self, xml_dict):
+        self.dict_result = [x.to_dict() for x in self.extract_info(xml_dict)]
 
-    def extract_info_to_iter(self):
-        self.iter_result = [x.to_iter() for x in self.obj_result]
+    def extract_info_to_iter(self, xml_dict):
+        self.iter_result = [x.to_iter() for x in sself.extract_info(xml_dict)]
     
-    def extract_info(self):
-        article_set = self.xmldict.get('PubmedArticleSet', {}).get('PubmedArticle', {})
+    def extract_info(self, xml_dict):
+        container = []
+        article_set = xml_dict.get('PubmedArticleSet', {}).get('PubmedArticle', {})
         print(f'Total {len(article_set)}')
         count = 0
         for article in article_set:
             count += 1
             if count % 1000 == 0:
                 print(f'Processing {count}')
-            self.select_info_to_obj(article)
+            container.append(article)
+        return container
         
 
     def select_info_to_obj(self, pubarticle):
@@ -180,7 +167,7 @@ class Pmparse(object):
         page = info.get('Article', {}).get('Pagination', {}).get('MedlinePgn')
         abstract = info.get('Article', {}).get('Abstract', {}).get('AbstractText')
         if type(abstract) == list:
-            temp_list = [x.get('#text') for x in abstract if type(x) == collections.OrderedDict]
+            temp_list = [x.get('#text', str(x)) for x in abstract if type(x) == collections.OrderedDict]
             abstract = ' '.join(temp_list)
         elif type(abstract) == collections.OrderedDict:
             abstract = abstract.get('#text')
@@ -193,12 +180,12 @@ class Pmparse(object):
             # print(author)
             author = author.get('Initials')
 
-        language = info.get('Article', {}).get('Language')
+        language = info.get('Article', {}).get('Language', '')
         if type(language) == list:
             language = ','.join(language)
         article = Article(pmid=pmid,journal=journal,issue=issue, volume=volume, pubyear=pubyear, 
                           pubmonth=pubmonth, title=title, page=page, abstract=abstract, author=author, language=language)
-        self.obj_result.append(article)
+        return article
 
     
 
