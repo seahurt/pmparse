@@ -123,6 +123,7 @@ class Pmparse(object):
             xml_dict = self.parse_to_dict(xml_text)
             iter_result = self.extract_info_to_iter(xml_dict)
             #self.to_db(iter_result)
+            self.total_count += iter_result
         except Exception as e:
             logger.error(f'{f} error')
     
@@ -147,14 +148,14 @@ class Pmparse(object):
         return xml_text
     
     def parse_to_dict(self, xml_text):
-        xml_dict = xmltodict.parse(self)
+        xml_dict = xmltodict.parse(xml_text)
         logger.info('Parse to dict done!')
         return xml_dict
     
     def to_db(self, iter_result):
         # self.cursor.executemany("insert into pubmed values (?,?,?,?,?,?,?,?,?,?)", self.iter_result)
         for x in iter_result:
-            self.total_count.append(0)
+            # self.total_count.append(0)
             try:
                 self.cursor.execute("insert into pubmed values (?,?,?,?,?,?,?,?,?,?)", x)
             except Exception as e:
@@ -173,10 +174,12 @@ class Pmparse(object):
         self.conn.commit()
     
     def extract_info_to_dict(self, xml_dict):
-        self.dict_result = [x.to_dict() for x in self.extract_info(xml_dict)]
+        dict_result = [x.to_dict() for x in self.extract_info(xml_dict)]
+        return dict_result
 
     def extract_info_to_iter(self, xml_dict):
-        self.iter_result = [x.to_iter() for x in sself.extract_info(xml_dict)]
+        iter_result = [x.to_iter() for x in self.extract_info(xml_dict)]
+        return iter_result
     
     def extract_info(self, xml_dict):
         container = []
@@ -187,7 +190,7 @@ class Pmparse(object):
             count += 1
             if count % 1000 == 0:
                 logger.info(f'Processing {count}')
-            container.append(article)
+            container.append(self.select_info_to_obj(article))
         return container
         
 
