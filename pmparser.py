@@ -93,12 +93,13 @@ class Pmparse(object):
         logger.info(f'Total file {len(self.infs)}')
 
         self.total_count = Manager().list()
-        logger.info(indir)
 
         # init db
+        logger.info('init db')
         self.db_init()
 
         p = Pool(self.process)
+        logger.info('Start pool')
         p.map_async(self.parse_to_db, self.infs)
         p.close()
         p.join()
@@ -108,6 +109,7 @@ class Pmparse(object):
         logger.info(f'Total count {len(self.total_count)}')  
         
     def parse_to_db(self, f):
+        logger.info(f'Start parse {f}')
         try:
             xml_text = self.read_file(f)
             xml_dict = self.parse_to_dict(xml_text)
