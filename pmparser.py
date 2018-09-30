@@ -90,8 +90,9 @@ class Pmparse(object):
         self.infs = glob.glob(indir + '/*.xml.gz')
         self.dbfile = dbfile
 
+        logger.info(f'Total file {len(self.infs)}')
+
         self.total_count = Manager().list()
-        print(indir)
         logger.info(indir)
 
         # init db
