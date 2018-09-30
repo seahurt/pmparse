@@ -98,18 +98,20 @@ class Pmparse(object):
 
         self.total_count = Manager().list()
 
-        # init db
-        logger.info('init db')
-        self.db_init()
+        
 
         p = Pool(self.process)
         logger.info('Start pool')
         p.map_async(self.parse_to_db, self.infs, callback=print, error_callback=print)
         p.close()
         p.join()
-        self.total_to_db()
-
         
+
+        # init db
+        logger.info('init db')
+        self.db_init()
+
+        self.total_to_db()
         # close db
         self.conn.close()
         logger.info(f'Total count {len(self.total_count)}')  
