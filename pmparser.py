@@ -139,7 +139,7 @@ class Pmparse(object):
         self.cursor = self.conn.cursor()
         try:
             self.cursor.execute('''CREATE TABLE pubmed 
-            (pmid text, journal text, pubdate text, page text, volume text, issue text, title text, abstract text, author text, language text)
+            (pmid INTEGER, journal text, pubdate text, page text, volume text, issue text, title text, abstract text, author text, language text)
             '''
             )
             self.conn.commit()
