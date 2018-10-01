@@ -167,6 +167,7 @@ class Pmparse(object):
     def total_to_db(self):
         total = len(self.total_count)
         batch_size = 10000
+        x = 0
         while x <= total:
             try:
                 self.cursor.executemany("insert into pubmed values (?,?,?,?,?,?,?,?,?,?)", self.total_count[x: x+batch_size])
