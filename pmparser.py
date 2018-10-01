@@ -165,13 +165,16 @@ class Pmparse(object):
         self.conn.commit()
     
     def total_to_db(self):
-        for x in self.total_count:
+        total = len(self.total_count)
+        batch_size = 10000
+        while x <= total:
             try:
-                self.cursor.execute("insert into pubmed values (?,?,?,?,?,?,?,?,?,?)", x)
+                self.cursor.executemany("insert into pubmed values (?,?,?,?,?,?,?,?,?,?)", self.total_count[x: x+batch_size])
             except Exception as e:
                 logger.info(e)
                 logger.info(x)    
-        self.conn.commit()
+            self.conn.commit()
+            x += batch_size
     
     def extract_info_to_dict(self, xml_dict):
         dict_result = [x.to_dict() for x in self.extract_info(xml_dict)]
@@ -197,6 +200,10 @@ class Pmparse(object):
     def select_info_to_obj(self, pubarticle):
         info = pubarticle.get('MedlineCitation', {})
         pmid = info.get('PMID', {}).get('#text')
+        if pmid:
+            pmid = int(pmid)
+        else:
+            pmid = 0
         journal = info.get('Article', {}).get('Journal', {}).get( 'Title')
         issue = info.get('Article', {}).get('Journal', {}).get('JournalIssue', {}).get('Issue')
         volume = info.get('Article', {}).get('Journal', {}).get('JournalIssue', {}).get('Volume')
