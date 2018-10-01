@@ -171,7 +171,7 @@ class Pmparse(object):
     
     def total_to_db(self):
         total = len(self.total_count)
-        batch_size = 10000
+        batch_size = 100000
         x = 0
         while x <= total:
             logger.info(f'Save {x} -- {x +batch_size}')
