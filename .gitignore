@@ -1,0 +1,7 @@
+*.db
+*.log
+.vscode/
+.venv
+.venv/
+venv
+venv/
