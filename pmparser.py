@@ -88,10 +88,15 @@ class Pmparse(object):
         'Nov': '11',
         'Dec': '12'
     }
-    def __init__(self, indir, dbfile=None, process=10):
-        self.process = process
+    def __init__(self, indir, dbfile=None, process=10, test=False):
+        self.process = int(process)
 
         self.infs = glob.glob(indir + '/*.xml.gz')
+
+        if test:
+            logger.info('Start test mode')
+            self.infs = self.infs[:30]
+
         self.dbfile = dbfile
 
         logger.info(f'Total file {len(self.infs)}')
@@ -101,7 +106,7 @@ class Pmparse(object):
         
 
         p = Pool(self.process)
-        logger.info('Start pool')
+        logger.info(f'Start pool {self.process}')
         p.map_async(self.parse_to_db, self.infs, callback=print, error_callback=print)
         p.close()
         p.join()
@@ -240,4 +245,14 @@ class Pmparse(object):
     
 
 if __name__ == '__main__':
-    Pmparse(sys.argv[1], dbfile=sys.argv[2])
+    try:
+        test = sys.argv[4]
+    except IndexError as e:
+        test = False
+    test = True if str(test).lower() == 'true' else False
+    try:
+        process = sys.argv[3]
+    except IndexError as e:
+        process = 10
+    process = int(process)
+    Pmparse(sys.argv[1], dbfile=sys.argv[2], process=process, test=test)
