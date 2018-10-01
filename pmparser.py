@@ -12,7 +12,7 @@ import logging
 logger = logging.getLogger('main')
 logger.setLevel(logging.INFO)  # 必须有
 
-FORMAT = '%(message)s'
+FORMAT = '%(asctime)s  %(levelname)s %(message)s'
 fmt = logging.Formatter(FORMAT)
 
 h = logging.FileHandler('run.log')
@@ -174,6 +174,7 @@ class Pmparse(object):
         batch_size = 10000
         x = 0
         while x <= total:
+            logger.info(f'Save {x} -- {x +batch_size}')
             try:
                 self.cursor.executemany("insert into pubmed values (?,?,?,?,?,?,?,?,?,?)", self.total_count[x: x+batch_size])
             except Exception as e:
