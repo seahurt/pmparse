@@ -8,6 +8,7 @@ import os
 import sys
 from multiprocessing import dummy, Pool, Manager
 import logging
+import hashlib
 
 logger = logging.getLogger('main')
 logger.setLevel(logging.INFO)  # 必须有
@@ -139,9 +140,10 @@ class Pmparse(object):
         self.cursor = self.conn.cursor()
         try:
             self.cursor.execute('''CREATE TABLE pubmed 
-            (pmid INTEGER, journal text, pubdate text, page text, volume text, issue text, title text, abstract text, author text, language text)
-            '''
-            )
+            (pmid INTEGER UNIQ, journal TEXT, pubdate TEXT, page TEXT, volume TEXT, issue TEXT, title TEXT, abstract TEXT, author TEXT, language TEXT, source TEXT)
+            ''')
+            self.cursor.execute('''CREATE TABLE signature
+            (name TEXT UNIQ, md5 TEXT, size INTEGER)''')
             self.conn.commit()
         except sqlite3.OperationalError:
             pass
@@ -151,6 +153,17 @@ class Pmparse(object):
             xml_text = f.read()
         logger.info('Read file done!')
         return xml_text
+    
+    def filter_oldfile(self):
+        self.db_init()
+        self.cursor.execute('select * from signature')
+        rows = self.cursor.fetchall()
+        files = {x['name']: x['md5'] for x in row}
+        self.infs = [x for x in self.infs if x in files and files[x] == ]
+        for x in self.infs:
+            if x in files:
+
+
     
     def parse_to_dict(self, xml_text):
         xml_dict = xmltodict.parse(xml_text)
