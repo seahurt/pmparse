@@ -66,7 +66,7 @@ class Parser(object):
         with open(self.path, 'rb') as f:
             hashobj = hashlib.md5(f.read())
             self.md5 = hashobj.hexdigest()
-            print(self.md5)
+            logger.info(self.md5)
     
     def parse(self):
         try:
@@ -97,16 +97,16 @@ class Parser(object):
     @timeit
     def pic_info(self):
         pubarticles = self.xml_dict.get('PubmedArticleSet', {}).get('PubmedArticle', [])
-        print(len(pubarticles))
+        logger.info(len(pubarticles))
         # self.results = multiprocessing.Manager().list()
         self.results = []
         # pool = dummy.Pool(settings.PARSE_PROCESS)
-        # pool.map_async(self.select_info_to_obj, pubarticles, error_callback=print)
+        # pool.map_async(self.select_info_to_obj, pubarticles, error_callback=logger.info)
         # pool.close()
         # pool.join()
         for x in pubarticles:
             self.select_info_to_obj(x)
-        print(f'Raw results {len(self.results)}')
+        logger.info(f'Raw results {len(self.results)}')
     
     @timeit
     def filt_dup(self):
@@ -120,7 +120,7 @@ class Parser(object):
             else:
                 self.dup.append(x)
         self.results = self.new_result
-        print(f'Uniq Results {len(self.results)}')
+        logger.info(f'Uniq Results {len(self.results)}')
     
     @timeit
     def save_todb(self):
@@ -142,7 +142,7 @@ class Parser(object):
                     count += 1
                 except Article.DoesNotExist:
                     pass
-        print(f'Updated {count} record using dup info')
+        logger.info(f'Updated {count} record using dup info')
 
     def select_info_to_obj(self, pubarticle):
         info = pubarticle.get('MedlineCitation', {})
@@ -185,7 +185,7 @@ class Parser(object):
             pubdate = datetime.date(year=int(pubyear), month=int(pubmonth), day=int(pubday))
         except Exception as e:
             logger.error(e)
-            print(pubyear, pubmonth, pubday)
+            logger.info(pubyear, pubmonth, pubday)
             
         obj = dict(pmid=pmid,journal=journal,issue=issue, volume=volume, pubdate=pubdate, title=title, page=page, abstract=abstract, author=author, language=language)
         self.results.append(obj)
